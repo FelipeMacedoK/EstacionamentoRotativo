@@ -1,16 +1,23 @@
--- Alunos: Caio Krieger e Felipe Macedo
--- Tema: 14 - Estacionamento / Rotativo
+# Estacionamento Rotativo
 
--- Entrada:
--- entradas/saídas (timestamps), tarifas por faixa, pernoite, mensalistas.
+**Alunos:** Caio Krieger e Felipe Macedo  
+**Tema:** 14 - Estacionamento / Rotativo
 
--- Regras:
--- Arredondamento por blocos (ex.: 15 min).
--- Teto diário e adicional noturno.
--- Isenções específicas (PNE/mensalista).
+## Entrada
+- Entradas/Saídas (timestamps)
+- Tarifas por faixa
+- Pernoite
+- Mensalistas
 
--- Saída:
--- total por veículo; breakdown por faixa; ocupação média.
+## Regras
+- Arredondamento por blocos (ex.: 15 min)
+- Teto diário e adicional noturno
+- Isenções específicas (PNE/mensalista)
 
--- Invariantes:
--- total ≥ 0
+## Saída
+- Total por veículo
+- Breakdown por faixa
+- Ocupação média
+
+## Invariantes
+- Total ≥ 0
