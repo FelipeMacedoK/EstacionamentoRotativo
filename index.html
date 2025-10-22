@@ -3,9 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Estacionamento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        fieldset {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        legend {
+            font-weight: bold;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="datetime-local"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
 </head>
 <body>
-    
+    <h1>Estacionamento Rotativo</h1>
+    <form id="parkingForm">
+        <fieldset>
+            <legend>Entradas/Saídas</legend>
+            <label for="entryTime">Entrada:</label>
+            <input type="datetime-local" id="entryTime" name="entryTime" required>
+            <label for="exitTime">Saída:</label>
+            <input type="datetime-local" id="exitTime" name="exitTime" required>
+        </fieldset>
+        <fieldset>
+            <legend>Tarifa por faixa (R$)</legend>
+            <ul style="margin:0; padding-left:20px;">
+                <li>Até 30 minutos - <strong>R$5,00</strong></li>
+                <li>Até 1 hora - <strong>R$8,00</strong></li>
+                <li>De 1h até 3h - <strong>R$10,00/hora</strong></li>
+                <li>De 3h até 6h - <strong>R$8,00/hora</strong></li>
+                <li>A partir de 6h - <strong>R$60,00</strong></li>
+                <li>Adicional Noturno - <strong>R$20,00</strong></li>
+                <li>Pessoa com necessidade especial - <strong>25% de desconto</strong></li>
+                <li>Mensalista - <strong>R$500,00</strong></li>
+            </ul>
+        </fieldset>
+       
+        <button type="submit">Calcular</button>
+    </form>
+    <div id="result">
+        <fieldset>
+            <legend>Resultado</legend>
+            <label>
+                Total por veículo: R$XX,XX; Breakdown por faixa: R$XX,XX; Ocupação média: XX%
+            </label>
+        </fieldset>
+    </div>
 </body>
 </html>
