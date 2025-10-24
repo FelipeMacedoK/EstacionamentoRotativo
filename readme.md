@@ -1,7 +1,7 @@
 # Estacionamento Rotativo
 
--- Alunos: @CaioKrieger e @[FelipeMacedo](https://github.com/FelipeMacedoK)
--- Tema: 14 - Estacionamento / Rotativo
+- Alunos: @CaioKrieger e @[FelipeMacedo](https://github.com/FelipeMacedoK)
+- Tema: 14 - Estacionamento / Rotativo
 
 ## Descrição
 Aplicação em JavaScript que calcula a tarifa de estacionamento rotativo com:
