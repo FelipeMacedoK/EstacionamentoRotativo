@@ -5,7 +5,7 @@
 
 ## Descrição
 Aplicação em JavaScript que calcula a tarifa de estacionamento rotativo com:
-- entradas/saídas por timestamps (datetime-local);
+- entradas/saídas por timestamps;
 - arredondamento por blocos (15 minutos);
 - faixas de tarifa, teto e adicional noturno;
 - desconto para PNE (25%) e tratamento de mensalista (valor fixo).
@@ -13,8 +13,8 @@ Aplicação em JavaScript que calcula a tarifa de estacionamento rotativo com:
 O objetivo do projeto é aplicar conceitos de programação funcional: funções puras, imutabilidade e uso de funções de ordem superior.
 
 ## Arquivos
-- `index.html` — interface e toda a lógica (separação clara entre funções puras e a parte que manipula o DOM).
-- `readme.md` — este arquivo.
+- `index.html' - interface e toda a lógica (separação clara entre funções puras e a parte que manipula o DOM).
+- `readme.md` - este arquivo.
 
 ## Como usar
 1. Os campos "Entrada" e "Saída" vêm pré-preenchidos com o horário atual ao abrir a página.
