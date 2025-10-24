@@ -1,86 +1,264 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estacionamento</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Estacionamento Rotativo</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        form { margin-bottom: 20px; }
+        fieldset { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+        legend { font-weight: bold; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="datetime-local"], input[type="number"], textarea {
+            width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;
         }
-        h1 {
-            color: #333;
-        }
-        form {
-            margin-bottom: 20px;
-        }
-        fieldset {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        legend {
-            font-weight: bold;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input[type="datetime-local"],
-        input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #218838;
-        }
+        button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        #errors { color: #b00; margin-bottom:10px; }
+        footer { margin-top:20px; color:#666; font-size:0.9em; }
     </style>
 </head>
 <body>
     <h1>Estacionamento Rotativo</h1>
-    <form id="parkingForm">
+
+    <form id="parkingForm" aria-describedby="formHelp">
         <fieldset>
-            <legend>Entradas/Saídas</legend>
+            <legend>Tarifa por faixa (R$)</legend>
+                <label>De 0 minutos até 30 minutos<b> - R$ 5,00 fixo</b></label>
+                <label>De 30 minutos até 1 hora<b> - R$ 8,00 fixo</b></label>
+                <label>De 1 hora até 3 Horas<b> - R$ 10,00 por hora</b></label>
+                <label>De 3 horas até 6 horas<b> - R$ 8,00 por hora</b></label>
+                <label>A partir de 6 horas<b> - R$ 60,00 fixo</b></label>
+                <label>Adicional Noturno (22:00-06:00)<b> - R$ 20,00 fixo</b></label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Entrada / Saída</legend>
             <label for="entryTime">Entrada:</label>
             <input type="datetime-local" id="entryTime" name="entryTime" required>
             <label for="exitTime">Saída:</label>
             <input type="datetime-local" id="exitTime" name="exitTime" required>
         </fieldset>
+
         <fieldset>
-            <legend>Tarifa por faixa (R$)</legend>
-            <ul style="margin:0; padding-left:20px;">
-                <li>Até 30 minutos - <strong>R$5,00</strong></li>
-                <li>Até 1 hora - <strong>R$8,00</strong></li>
-                <li>De 1h até 3h - <strong>R$10,00/hora</strong></li>
-                <li>De 3h até 6h - <strong>R$8,00/hora</strong></li>
-                <li>A partir de 6h - <strong>R$60,00</strong></li>
-                <li>Adicional Noturno - <strong>R$20,00</strong></li>
-                <li>Pessoa com necessidade especial - <strong>25% de desconto</strong></li>
-                <li>Mensalista - <strong>R$500,00</strong></li>
-            </ul>
+            <legend>Opções</legend>
+            <label><input type="checkbox" id="isPne"> Pessoa com necessidade especial (25% desconto)</label>
+            <label><input type="checkbox" id="isMensalista"> Mensalista (valor fixo)</label>
+            <label for="mensalFee">Mensalista - Valor mensal (R$):</label>
+            <input type="number" id="mensalFee" value="500" min="0" step="0.01">
         </fieldset>
-       
+
         <button type="submit">Calcular</button>
     </form>
+
+    <div id="errors" role="alert" aria-live="polite"></div>
+
     <div id="result">
         <fieldset>
             <legend>Resultado</legend>
-            <label>
-                Total por veículo: R$XX,XX; Breakdown por faixa: R$XX,XX; Ocupação média: XX%
-            </label>
+            <div id="summary">Nenhum cálculo realizado ainda.</div>
+            <ul id="breakdown"></ul>
+            <div id="occupancy"></div>
         </fieldset>
     </div>
+
+    <footer>Desenvolvido por: Caio Krieger e Felipe Macedo</footer>
+
+<script>
+
+/* Converte string ISO do input para Date, retorna null se inválido */
+const parseDate = (isoString) => {
+    const d = new Date(isoString);
+    return Number.isNaN(d.getTime()) ? null : d;
+};
+
+/* Calcula minutos entre duas datas */
+const minutesBetween = (start, end) =>
+    Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
+
+/* Arredonda minutos para cima em blocos de 15 minutos */
+const roundToBlock = (minutes, block = 15) =>
+    Math.ceil(minutes / block) * block;
+
+/* Formata data para valor compatível com o input */
+const toInputLocal = (date) => {
+    const pad = n => String(n).padStart(2, '0');
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const mm = pad(date.getMinutes());
+    return `${y}-${m}-${d}T${hh}:${mm}`;
+};
+
+/* Valida entradas do formulário; retorna objeto imutável com resultado */
+const validateInputs = ({ entryIso, exitIso, mensalFee }) => {
+    const entry = parseDate(entryIso);
+    const exit = parseDate(exitIso);
+
+    const errors = [
+        !entry && 'Entrada inválida',
+        !exit && 'Saída inválida',
+        entry && exit && exit <= entry && 'Saída deve ser posterior à entrada',
+        (mensalFee === null || Number.isNaN(mensalFee) || mensalFee < 0) && 'Valor mensal inválido'
+    ].filter(Boolean);
+
+    return Object.freeze({
+        valid: errors.length === 0,
+        errors,
+        entry,
+        exit
+    });
+};
+
+/* Regras de negócio */
+
+const NIGHT_ADDITIONAL = 20;
+const PNE_DISCOUNT = 0.25;
+
+/* Verifica se o intervalo toca o período noturno (22:00-06:00) */
+const overlapsNight = (start, end) => {
+    const sHour = start.getHours();
+    const eHour = end.getHours();
+    if (sHour >= 22 || sHour < 6) return true;
+    if (eHour >= 22 || eHour < 6) return true;
+    const daySpan = Math.floor((end - start) / (24 * 3600 * 1000));
+    if (daySpan >= 1) return true;
+    return false;
+};
+
+/* Calcula taxa com regras aplicadas e retorna novo objeto */
+const calcFeePure = ({ entry, exit, isPne = false, isMensalista = false, mensalFee = 500 }) => {
+    if (isMensalista) {
+        const base = Number(mensalFee);
+        const discounted = isPne ? base * (1 - PNE_DISCOUNT) : base;
+        return Object.freeze({
+            breakdown: [{ label: 'Mensalista', amount: Number(discounted.toFixed(2)) }],
+            total: Number(discounted.toFixed(2)),
+            minutes: 0,
+            occupancyPercent: 0
+        });
+    }
+
+    const rawMinutes = minutesBetween(entry, exit);
+    const minutes = roundToBlock(rawMinutes, 15);
+
+    // cálculo das faixas
+    let total = 0;
+    const breakdown = [];
+
+    if (minutes <= 30) {
+        breakdown.push({ label: 'Até 30 min', amount: 5 });
+        total = 5;
+    } else if (minutes <= 60) {
+        breakdown.push({ label: 'Até 1 hora', amount: 8 });
+        total = 8;
+    } else if (minutes <= 180) {
+        const hours = Math.ceil(minutes / 60);
+        const amount = hours * 10;
+        breakdown.push({ label: `${hours} hora(s)`, amount });
+        total = amount;
+    } else if (minutes <= 360) {
+        const hours = Math.ceil(minutes / 60);
+        const amount = hours * 8;
+        breakdown.push({ label: `${hours} hora(s)`, amount });
+        total = amount;
+    } else {
+        breakdown.push({ label: 'Acima de 6h', amount: 60 });
+        total = 60;
+    }
+
+    // adicional noturno
+    const night = overlapsNight(entry, exit);
+    if (night) {
+        breakdown.push({ label: 'Adicional Noturno', amount: NIGHT_ADDITIONAL });
+        total += NIGHT_ADDITIONAL;
+    }
+
+    // desconto PNE
+    if (isPne) {
+        const discountAmount = Number((total * PNE_DISCOUNT).toFixed(2));
+        breakdown.push({ label: 'Desconto PNE (25%)', amount: -discountAmount });
+        total = Number((total - discountAmount).toFixed(2));
+    }
+
+    const occupancyPercent = Number(((minutes / (24 * 60)) * 100).toFixed(2));
+
+    return Object.freeze({
+        minutes,
+        breakdown: breakdown.map(b => Object.freeze({ label: b.label, amount: b.amount })), // imutabilidade interna
+        total: Number(total.toFixed(2)),
+        occupancyPercent
+    });
+};
+
+/* Preenche os inputs de entrada/saída com o horário atual ao carregar a página */
+document.addEventListener('DOMContentLoaded', () => {
+    const now = new Date();
+    const entryEl = document.getElementById('entryTime');
+    const exitEl = document.getElementById('exitTime');
+    if (entryEl) entryEl.value = toInputLocal(now);
+    if (exitEl) exitEl.value = toInputLocal(now);
+
+    /* Quando marcar mensalista, oculta inputs de data */
+    const mensalCheck = document.getElementById('isMensalista');
+    mensalCheck.addEventListener('change', (e) => {
+        const disabled = e.target.checked;
+        document.getElementById('entryTime').disabled = disabled;
+        document.getElementById('exitTime').disabled = disabled;
+    });
+});
+
+/* Handler do formulário: usa apenas funções puras para validar e calcular */
+document.getElementById('parkingForm').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+
+    const entryIso = document.getElementById('entryTime').value;
+    const exitIso = document.getElementById('exitTime').value;
+    const isPne = document.getElementById('isPne').checked;
+    const isMensalista = document.getElementById('isMensalista').checked;
+    const mensalFee = Number(document.getElementById('mensalFee').value);
+
+    const { valid, errors, entry, exit } = validateInputs({ entryIso, exitIso, mensalFee });
+
+    const errorsEl = document.getElementById('errors');
+    const summaryEl = document.getElementById('summary');
+    const breakdownEl = document.getElementById('breakdown');
+    const occupancyEl = document.getElementById('occupancy');
+
+    // limpa UI
+    errorsEl.textContent = '';
+    summaryEl.textContent = '';
+    breakdownEl.innerHTML = '';
+    occupancyEl.textContent = '';
+
+    if (!valid) {
+        errorsEl.textContent = errors.join(' | ');
+        return;
+    }
+
+    // cálculo puro
+    const result = calcFeePure({ entry, exit, isPne, isMensalista, mensalFee });
+
+    // atualiza UI: usa map para criar elementos e forEach para anexar
+    summaryEl.textContent = `Total por veículo: R$ ${result.total.toFixed(2)} (Tempo: ${result.minutes} minutos)`;
+
+    const lis = result.breakdown
+        .map(item => {
+            const li = document.createElement('li');
+            // formata valores com sinal apropriado
+            const amount = Number(item.amount);
+            const formatted = amount < 0 ? `- R$ ${Math.abs(amount).toFixed(2)}` : `R$ ${amount.toFixed(2)}`;
+            li.textContent = `${item.label}: ${formatted}`;
+            return li;
+        });
+
+    lis.forEach(li => breakdownEl.appendChild(li));
+
+    occupancyEl.textContent = `Ocupação média (do dia): ${result.occupancyPercent}%`;
+});
+</script>
 </body>
 </html>
