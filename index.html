@@ -30,7 +30,7 @@
                 <label>De 30 minutos até 1 hora<b> - R$ 8,00 fixo</b></label>
                 <label>De 1 hora até 3 Horas<b> - R$ 10,00 por hora</b></label>
                 <label>De 3 horas até 6 horas<b> - R$ 8,00 por hora</b></label>
-                <label>A partir de 6 horas<b> - R$ 60,00 fixo</b></label>
+                <label>A partir de 6 horas (com máxima de 12 horas)<b> - R$ 60,00 fixo</b></label>
                 <label>Adicional Noturno (22:00-06:00)<b> - R$ 20,00 fixo</b></label>
         </fieldset>
 
@@ -47,7 +47,7 @@
             <label><input type="checkbox" id="isPne"> Pessoa com necessidade especial (25% desconto)</label>
             <label><input type="checkbox" id="isMensalista"> Mensalista (valor fixo)</label>
             <label for="mensalFee">Mensalista - Valor mensal (R$):</label>
-            <input type="number" id="mensalFee" value="500" min="0" step="0.01">
+            <input disabled type="number" id="mensalFee" value="500" min="0" step="0.01">
         </fieldset>
 
         <button type="submit">Calcular</button>
@@ -94,15 +94,16 @@ const toInputLocal = (date) => {
 };
 
 /* Valida entradas do formulário; retorna objeto imutável com resultado */
-const validateInputs = ({ entryIso, exitIso, mensalFee }) => {
+const validateInputs = ({ entryIso, exitIso, mensalFree, isMensalista }) => {
     const entry = parseDate(entryIso);
     const exit = parseDate(exitIso);
-
+    
     const errors = [
-        !entry && 'Entrada inválida',
-        !exit && 'Saída inválida',
-        entry && exit && exit <= entry && 'Saída deve ser posterior à entrada',
-        (mensalFee === null || Number.isNaN(mensalFee) || mensalFee < 0) && 'Valor mensal inválido'
+        !entry && !isMensalista && 'Entrada inválida',
+        !exit && !isMensalista && 'Saída inválida',
+        entry && exit && exit <= entry && !isMensalista && 'Saída deve ser posterior à entrada',
+        entry && exit && minutesBetween(entry, exit) > 720 && !isMensalista && 'A estadia máxima permitida é de 12 horas',
+        (mensalFree === null || Number.isNaN(mensalFree) || mensalFree < 0) && 'Valor mensal inválido'
     ].filter(Boolean);
 
     return Object.freeze({
@@ -118,7 +119,9 @@ const validateInputs = ({ entryIso, exitIso, mensalFee }) => {
 const NIGHT_ADDITIONAL = 20;
 const PNE_DISCOUNT = 0.25;
 
-/* Verifica se o intervalo toca o período noturno (22:00-06:00) */
+/** 
+ * Verifica se o intervalo toca o período noturno (22:00-06:00) 
+ */
 const overlapsNight = (start, end) => {
     const sHour = start.getHours();
     const eHour = end.getHours();
@@ -129,7 +132,9 @@ const overlapsNight = (start, end) => {
     return false;
 };
 
-/* Calcula taxa com regras aplicadas e retorna novo objeto */
+/** 
+ * Calcula taxa com regras aplicadas e retorna novo objeto 
+ */
 const calcFeePure = ({ entry, exit, isPne = false, isMensalista = false, mensalFee = 500 }) => {
     if (isMensalista) {
         const base = Number(mensalFee);
@@ -145,7 +150,7 @@ const calcFeePure = ({ entry, exit, isPne = false, isMensalista = false, mensalF
     const rawMinutes = minutesBetween(entry, exit);
     const minutes = roundToBlock(rawMinutes, 15);
 
-    // cálculo das faixas
+    /* cálculo das faixas */
     let total = 0;
     const breakdown = [];
 
@@ -170,14 +175,14 @@ const calcFeePure = ({ entry, exit, isPne = false, isMensalista = false, mensalF
         total = 60;
     }
 
-    // adicional noturno
+    /* adicional noturno */
     const night = overlapsNight(entry, exit);
     if (night) {
         breakdown.push({ label: 'Adicional Noturno', amount: NIGHT_ADDITIONAL });
         total += NIGHT_ADDITIONAL;
     }
 
-    // desconto PNE
+    /* desconto PNE */
     if (isPne) {
         const discountAmount = Number((total * PNE_DISCOUNT).toFixed(2));
         breakdown.push({ label: 'Desconto PNE (25%)', amount: -discountAmount });
@@ -194,6 +199,19 @@ const calcFeePure = ({ entry, exit, isPne = false, isMensalista = false, mensalF
     });
 };
 
+/**
+ * Comportamento de onChange da flag de mensalista
+ */
+const onChangeIsMensalista = () => {
+    const mensalCheck = document.getElementById('isMensalista');
+    mensalCheck.addEventListener('change', (e) => {
+        const disabled = e.target.checked;
+        document.getElementById('entryTime').disabled = disabled;
+        document.getElementById('exitTime').disabled = disabled;
+        document.getElementById('mensalFee').disabled = !disabled;
+    });
+};
+
 /* Preenche os inputs de entrada/saída com o horário atual ao carregar a página */
 document.addEventListener('DOMContentLoaded', () => {
     const now = new Date();
@@ -203,12 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exitEl) exitEl.value = toInputLocal(now);
 
     /* Quando marcar mensalista, oculta inputs de data */
-    const mensalCheck = document.getElementById('isMensalista');
-    mensalCheck.addEventListener('change', (e) => {
-        const disabled = e.target.checked;
-        document.getElementById('entryTime').disabled = disabled;
-        document.getElementById('exitTime').disabled = disabled;
-    });
+    onChangeIsMensalista();
 });
 
 /* Handler do formulário: usa apenas funções puras para validar e calcular */
@@ -221,7 +234,7 @@ document.getElementById('parkingForm').addEventListener('submit', (ev) => {
     const isMensalista = document.getElementById('isMensalista').checked;
     const mensalFee = Number(document.getElementById('mensalFee').value);
 
-    const { valid, errors, entry, exit } = validateInputs({ entryIso, exitIso, mensalFee });
+    const { valid, errors, entry, exit } = validateInputs({ entryIso, exitIso, mensalFee, isMensalista });
 
     const errorsEl = document.getElementById('errors');
     const summaryEl = document.getElementById('summary');
