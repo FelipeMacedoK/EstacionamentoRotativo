@@ -1,6 +1,6 @@
 # Estacionamento Rotativo
 
-- Alunos: @CaioKrieger e @[FelipeMacedo](https://github.com/FelipeMacedoK)
+- Alunos: @[CaioMicael](https://github.com/CaioMicael) e @[FelipeMacedo](https://github.com/FelipeMacedoK)
 - Tema: 14 - Estacionamento / Rotativo
 
 ## Descrição
@@ -26,7 +26,7 @@ O objetivo do projeto é aplicar conceitos de programação funcional: funções
   - Até 1 h — R$ 8,00
   - 1 h até 3 h — R$ 10,00 / hora (horas arredondadas para cima)
   - 3 h até 6 h — R$ 8,00 / hora (horas arredondadas para cima)
-  - A partir de 6 h — R$ 60,00 (fixo)
+  - A partir de 6 h (com limite de 12h) — R$ 60,00 (fixo)
 - Adicional noturno: R$ 20,00 se o intervalo tocar 22:00–06:00.
 - PNE: desconto de 25% sobre o total calculado.
 - Mensalista: aplica valor fixo mensal (pode receber desconto PNE se marcado).
