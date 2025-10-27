@@ -46,8 +46,13 @@
             <legend>Opções</legend>
             <label><input type="checkbox" id="isPne"> Pessoa com necessidade especial (25% desconto)</label>
             <label><input type="checkbox" id="isMensalista"> Mensalista (valor fixo)</label>
-            <label for="mensalFee">Mensalista - Valor mensal (R$):</label>
-            <input disabled type="number" id="mensalFee" value="500" min="0" step="0.01">
+            <label for="mensalPlan">Plano mensalista:</label>
+            <select disabled id="mensalPlan">
+                <option value="mensal">Mensal (30h) - R$ 80,00</option>
+                <option value="trimestral">Trimestral (90h) - R$ 160,00</option>
+                <option value="semestral">Semestral (180h) - R$ 320,00</option>
+                <option value="anual">Anual (360h) - R$ 480,00</option>
+            </select>
         </fieldset>
 
         <button type="submit">Calcular</button>
@@ -94,7 +99,7 @@ const toInputLocal = (date) => {
 };
 
 /* Valida entradas do formulário; retorna objeto imutável com resultado */
-const validateInputs = ({ entryIso, exitIso, mensalFree, isMensalista }) => {
+const validateInputs = ({ entryIso, exitIso, mensalPlan, isMensalista }) => {
     const entry = parseDate(entryIso);
     const exit = parseDate(exitIso);
     
@@ -102,8 +107,7 @@ const validateInputs = ({ entryIso, exitIso, mensalFree, isMensalista }) => {
         !entry && !isMensalista && 'Entrada inválida',
         !exit && !isMensalista && 'Saída inválida',
         entry && exit && exit <= entry && !isMensalista && 'Saída deve ser posterior à entrada',
-        entry && exit && minutesBetween(entry, exit) > 720 && !isMensalista && 'A estadia máxima permitida é de 12 horas',
-        (mensalFree === null || Number.isNaN(mensalFree) || mensalFree < 0) && 'Valor mensal inválido'
+        entry && exit && minutesBetween(entry, exit) > 720 && !isMensalista && 'A estadia máxima permitida é de 12 horas'
     ].filter(Boolean);
 
     return Object.freeze({
@@ -118,6 +122,17 @@ const validateInputs = ({ entryIso, exitIso, mensalFree, isMensalista }) => {
 
 const NIGHT_ADDITIONAL = 20;
 const PNE_DISCOUNT = 0.25;
+
+/* Obter valor e horas do plano mensalista */
+const getMensalPlanInfo = (plan) => {
+    const plans = {
+        'mensal': { value: 80, hours: 30 },
+        'trimestral': { value: 160, hours: 90 },
+        'semestral': { value: 320, hours: 180 },
+        'anual': { value: 480, hours: 360 }
+    };
+    return plans[plan] || { value: 80, hours: 30 };
+};
 
 /** 
  * Verifica se o intervalo toca o período noturno (22:00-06:00) 
@@ -135,14 +150,33 @@ const overlapsNight = (start, end) => {
 /** 
  * Calcula taxa com regras aplicadas e retorna novo objeto 
  */
-const calcFeePure = ({ entry, exit, isPne = false, isMensalista = false, mensalFee = 500 }) => {
+const calcFeePure = ({ entry, exit, isPne = false, isMensalista = false, mensalPlan = 'mensal' }) => {
     if (isMensalista) {
-        const base = Number(mensalFee);
-        const discounted = isPne ? base * (1 - PNE_DISCOUNT) : base;
+        const planInfo = getMensalPlanInfo(mensalPlan);
+        
+        const planLabels = {
+            'mensal': 'Plano Mensal',
+            'trimestral': 'Plano Trimestral',
+            'semestral': 'Plano Semestral',
+            'anual': 'Plano Anual'
+        };
+        
+        const breakdown = [];
+        let total = planInfo.value;
+        
+        breakdown.push({ label: `${planLabels[mensalPlan]} (${planInfo.hours}h disponíveis)`, amount: planInfo.value });
+        
+        // Aplicar desconto PNE se necessário
+        if (isPne) {
+            const discountAmount = Number((total * PNE_DISCOUNT).toFixed(2));
+            breakdown.push({ label: 'Desconto PNE (25%)', amount: -discountAmount });
+            total = Number((total - discountAmount).toFixed(2));
+        }
+        
         return Object.freeze({
-            breakdown: [{ label: 'Mensalista', amount: Number(discounted.toFixed(2)) }],
-            total: Number(discounted.toFixed(2)),
-            minutes: 0,
+            breakdown: breakdown.map(b => Object.freeze({ label: b.label, amount: b.amount })),
+            total: Number(total.toFixed(2)),
+            minutes: (planInfo.hours*60),
             occupancyPercent: 0
         });
     }
@@ -208,7 +242,7 @@ const onChangeIsMensalista = () => {
         const disabled = e.target.checked;
         document.getElementById('entryTime').disabled = disabled;
         document.getElementById('exitTime').disabled = disabled;
-        document.getElementById('mensalFee').disabled = !disabled;
+        document.getElementById('mensalPlan').disabled = !disabled;
     });
 };
 
@@ -232,9 +266,9 @@ document.getElementById('parkingForm').addEventListener('submit', (ev) => {
     const exitIso = document.getElementById('exitTime').value;
     const isPne = document.getElementById('isPne').checked;
     const isMensalista = document.getElementById('isMensalista').checked;
-    const mensalFee = Number(document.getElementById('mensalFee').value);
+    const mensalPlan = document.getElementById('mensalPlan').value;
 
-    const { valid, errors, entry, exit } = validateInputs({ entryIso, exitIso, mensalFee, isMensalista });
+    const { valid, errors, entry, exit } = validateInputs({ entryIso, exitIso, mensalPlan, isMensalista });
 
     const errorsEl = document.getElementById('errors');
     const summaryEl = document.getElementById('summary');
@@ -253,7 +287,7 @@ document.getElementById('parkingForm').addEventListener('submit', (ev) => {
     }
 
     // cálculo puro
-    const result = calcFeePure({ entry, exit, isPne, isMensalista, mensalFee });
+    const result = calcFeePure({ entry, exit, isPne, isMensalista, mensalPlan });
 
     // atualiza UI: usa map para criar elementos e forEach para anexar
     summaryEl.textContent = `Total por veículo: R$ ${result.total.toFixed(2)} (Tempo: ${result.minutes} minutos)`;
