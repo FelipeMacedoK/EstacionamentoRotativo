@@ -8,14 +8,14 @@ Aplicação em JavaScript que calcula a tarifa de estacionamento rotativo com:
 - entradas/saídas por timestamps;
 - arredondamento por blocos (15 minutos);
 - faixas de tarifa, teto e adicional noturno;
-- desconto para PNE (25%) e tratamento de mensalista (valor fixo).
+- desconto para PNE (25%) e tratamento de mensalista (planos).
 
 O objetivo do projeto é aplicar conceitos de programação funcional: funções puras, imutabilidade e uso de funções de ordem superior.
 
 ## Como usar
 1. Os campos "Entrada" e "Saída" vêm pré-preenchidos com o horário atual ao abrir a página.
 2. Marque `PNE` para aplicar desconto de 25%.
-3. Marque `Mensalista` se for caso; o valor mensal será aplicado (campo `Mensalista - Valor mensal`).
+3. Marque `Mensalista` se for caso; o valor mensal será aplicado conforme plano selecionado.
 4. Clique em `Calcular`.
 5. Veja o resumo, o detalhamento por faixa e a ocupação média exibidos abaixo do formulário.
 
@@ -29,7 +29,7 @@ O objetivo do projeto é aplicar conceitos de programação funcional: funções
   - A partir de 6 h (com limite de 12h) — R$ 60,00 (fixo)
 - Adicional noturno: R$ 20,00 se o intervalo tocar 22:00–06:00.
 - PNE: desconto de 25% sobre o total calculado.
-- Mensalista: aplica valor fixo mensal (pode receber desconto PNE se marcado).
+- Mensalista: sendo os planos Mensal, Trimestral, Semestral e Anual, onde cada mês garante 30 horas de estacionamento.
 
 ## Exemplos de entrada e saída
 
@@ -56,9 +56,9 @@ O objetivo do projeto é aplicar conceitos de programação funcional: funções
  - Total por veículo: R$ 40,00
 
 4) Mensalista com desconto PNE
-- Marcar `Mensalista` e `PNE`
+- Marcar `Mensalista - Mensal` e `PNE`
 - Resultado:
-  - Mensalista: R$ 375,00 (R$ 500 - 25%)
+  - Mensalista: R$ 80,00 - 25%
 
 ## Como a programação funcional foi aplicada
 - Funções puras:
@@ -79,4 +79,3 @@ O objetivo do projeto é aplicar conceitos de programação funcional: funções
 - Validações puras garantem que:
   - Entrada e saída sejam válidos.
   - Saída seja posterior à entrada.
-  - Valor mensal seja número não-negativo.
